@@ -1,4 +1,4 @@
-module github.com/apapsch/go-jsonmerge
+module github.com/apapsch/go-jsonmerge/v2
 
 go 1.12
 
