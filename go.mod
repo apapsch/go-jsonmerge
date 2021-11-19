@@ -1,4 +1,4 @@
-module github.com/RaveNoX/go-jsonmerge
+module github.com/apapsch/go-jsonmerge
 
 go 1.12
 
