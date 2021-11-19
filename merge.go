@@ -20,6 +20,9 @@ type Merger struct {
 	//   "arr1.1.prop" for arrays
 	// Value is value of replacemet
 	Replaced map[string]interface{}
+	// CopyNonexistent enables setting fields into the result
+	// which only exist in the patch.
+	CopyNonexistent bool
 }
 
 func (m *Merger) mergeValue(path []string, patch map[string]interface{}, key string, value interface{}) interface{} {
@@ -70,6 +73,13 @@ func (m *Merger) mergeObjects(data, patch interface{}, path []string) interface{
 
 			for k, v := range dataObject {
 				ret[k] = m.mergeValue(path, patchObject, k, v)
+			}
+			if m.CopyNonexistent {
+				for k, v := range patchObject {
+					if _, ok := dataObject[k]; !ok {
+						ret[k] = v
+					}
+				}
 			}
 
 			return ret
