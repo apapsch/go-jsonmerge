@@ -9,8 +9,9 @@ import (
 	"strings"
 )
 
-// Info describes result of merge operation
-type Info struct {
+// Merger describes result of merge operation and provides
+// configuration.
+type Merger struct {
 	// Errors is slice of non-critical errors of merge operations
 	Errors []error
 	// Replaced is describe replacements
@@ -21,7 +22,7 @@ type Info struct {
 	Replaced map[string]interface{}
 }
 
-func (info *Info) mergeValue(path []string, patch map[string]interface{}, key string, value interface{}) interface{} {
+func (m *Merger) mergeValue(path []string, patch map[string]interface{}, key string, value interface{}) interface{} {
 	patchValue, patchHasValue := patch[key]
 
 	if !patchHasValue {
@@ -36,31 +37,31 @@ func (info *Info) mergeValue(path []string, patch map[string]interface{}, key st
 	if _, ok := value.(map[string]interface{}); ok {
 		if !patchValueIsObject {
 			err := fmt.Errorf("patch value must be object for key \"%v\"", pathStr)
-			info.Errors = append(info.Errors, err)
+			m.Errors = append(m.Errors, err)
 			return value
 		}
 
-		return info.mergeObjects(value, patchValue, path)
+		return m.mergeObjects(value, patchValue, path)
 	}
 
 	if _, ok := value.([]interface{}); ok && patchValueIsObject {
-		return info.mergeObjects(value, patchValue, path)
+		return m.mergeObjects(value, patchValue, path)
 	}
 
 	if !reflect.DeepEqual(value, patchValue) {
-		info.Replaced[pathStr] = patchValue
+		m.Replaced[pathStr] = patchValue
 	}
 
 	return patchValue
 }
 
-func (info *Info) mergeObjects(data, patch interface{}, path []string) interface{} {
+func (m *Merger) mergeObjects(data, patch interface{}, path []string) interface{} {
 	if patchObject, ok := patch.(map[string]interface{}); ok {
 		if dataArray, ok := data.([]interface{}); ok {
 			ret := make([]interface{}, len(dataArray))
 
 			for i, val := range dataArray {
-				ret[i] = info.mergeValue(path, patchObject, strconv.Itoa(i), val)
+				ret[i] = m.mergeValue(path, patchObject, strconv.Itoa(i), val)
 			}
 
 			return ret
@@ -68,7 +69,7 @@ func (info *Info) mergeObjects(data, patch interface{}, path []string) interface
 			ret := make(map[string]interface{})
 
 			for k, v := range dataObject {
-				ret[k] = info.mergeValue(path, patchObject, k, v)
+				ret[k] = m.mergeValue(path, patchObject, k, v)
 			}
 
 			return ret
@@ -80,22 +81,21 @@ func (info *Info) mergeObjects(data, patch interface{}, path []string) interface
 
 // Merge merges patch document to data document
 //
-// Returning merged document and merge info
-func Merge(data, patch interface{}) (interface{}, *Info) {
-	info := &Info{
-		Replaced: make(map[string]interface{}),
-	}
-	ret := info.mergeObjects(data, patch, nil)
-	return ret, info
+// Returning merged document. Result of merge operation can be
+// obtained from the Merger. Result information is discarded before
+// merging.
+func (m *Merger) Merge(data, patch interface{}) interface{} {
+	m.Replaced = make(map[string]interface{})
+	m.Errors = make([]error, 0)
+	return m.mergeObjects(data, patch, nil)
 }
 
 // MergeBytesIndent merges patch document buffer to data document buffer
 //
 // Use prefix and indent for set indentation like in json.MarshalIndent
 //
-// Returning merged document buffer, merge info and
-// error if any
-func MergeBytesIndent(dataBuff, patchBuff []byte, prefix, indent string) (mergedBuff []byte, info *Info, err error) {
+// Returning merged document buffer and error if any.
+func (m *Merger) MergeBytesIndent(dataBuff, patchBuff []byte, prefix, indent string) (mergedBuff []byte, err error) {
 	var data, patch, merged interface{}
 
 	err = unmarshalJSON(dataBuff, &data)
@@ -110,7 +110,7 @@ func MergeBytesIndent(dataBuff, patchBuff []byte, prefix, indent string) (merged
 		return
 	}
 
-	merged, info = Merge(data, patch)
+	merged = m.Merge(data, patch)
 
 	mergedBuff, err = json.MarshalIndent(merged, prefix, indent)
 	if err != nil {
@@ -124,7 +124,7 @@ func MergeBytesIndent(dataBuff, patchBuff []byte, prefix, indent string) (merged
 //
 // Returning merged document buffer, merge info and
 // error if any
-func MergeBytes(dataBuff, patchBuff []byte) (mergedBuff []byte, info *Info, err error) {
+func (m *Merger) MergeBytes(dataBuff, patchBuff []byte) (mergedBuff []byte, err error) {
 	var data, patch, merged interface{}
 
 	err = unmarshalJSON(dataBuff, &data)
@@ -139,7 +139,7 @@ func MergeBytes(dataBuff, patchBuff []byte) (mergedBuff []byte, info *Info, err 
 		return
 	}
 
-	merged, info = Merge(data, patch)
+	merged = m.Merge(data, patch)
 
 	mergedBuff, err = json.Marshal(merged)
 	if err != nil {

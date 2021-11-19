@@ -70,7 +70,8 @@ func init() {
 }
 
 func TestMergeBytesIndent(t *testing.T) {
-	result, info, err := MergeBytesIndent([]byte(input), []byte(patch), " ", "  ")
+	merger := &Merger{}
+	result, err := merger.MergeBytesIndent([]byte(input), []byte(patch), " ", "  ")
 
 	if err != nil {
 		t.Error(err)
@@ -81,13 +82,14 @@ func TestMergeBytesIndent(t *testing.T) {
 		t.Errorf("Result not equals output\nExpected:\n%s\n\nGot:\n%s\n\n", outputIndentJSON, result)
 	}
 
-	if len(info.Errors) != 0 {
-		t.Errorf("info.Errors count is not 0, count: %v", len(info.Errors))
+	if len(merger.Errors) != 0 {
+		t.Errorf("info.Errors count is not 0, count: %v", len(merger.Errors))
 	}
 }
 
 func TestMergeBytes(t *testing.T) {
-	result, info, err := MergeBytes([]byte(input), []byte(patch))
+	merger := &Merger{}
+	result, err := merger.MergeBytes([]byte(input), []byte(patch))
 
 	if err != nil {
 		t.Error(err)
@@ -98,8 +100,8 @@ func TestMergeBytes(t *testing.T) {
 		t.Errorf("Result not equals output\nExpected:\n%s\n\nGot:\n%s\n\n", outputJSON, result)
 	}
 
-	if len(info.Errors) != 0 {
-		t.Errorf("info.Errors count is not 0, count: %v", len(info.Errors))
+	if len(merger.Errors) != 0 {
+		t.Errorf("info.Errors count is not 0, count: %v", len(merger.Errors))
 	}
 }
 
@@ -108,7 +110,8 @@ func TestLongNumbers(t *testing.T) {
 	patch := `{"Value":12423439}`
 	outputJSON := `{"Id":12423434,"Value":12423439}`
 
-	result, info, err := MergeBytes([]byte(input), []byte(patch))
+	merger := &Merger{}
+	result, err := merger.MergeBytes([]byte(input), []byte(patch))
 
 	if err != nil {
 		t.Error(err)
@@ -119,7 +122,7 @@ func TestLongNumbers(t *testing.T) {
 		t.Errorf("Result not equals output\nExpected:\n%s\n\nGot:\n%s\n\n", outputJSON, result)
 	}
 
-	if len(info.Errors) != 0 {
-		t.Errorf("info.Errors count is not 0, count: %v", len(info.Errors))
+	if len(merger.Errors) != 0 {
+		t.Errorf("info.Errors count is not 0, count: %v", len(merger.Errors))
 	}
 }
